@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Galaxia del Amor 3D 🌌💖✨</title>
+<style>
+  * { 
+    box-sizing: border-box; 
+    user-select: none; 
+    -webkit-user-select: none; 
+  }
+  
+  body, html { 
+    margin: 0; 
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; 
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+    background: #01000b;
+    touch-action: none;
+  }
+
+  #container { 
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%; 
+    height: 100%; 
+    z-index: 1;
+  }
+  
+  /* Pantalla de bienvenida para desbloquear el audio */
+  #startScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle at center, #23024d 0%, #0c0029 60%, #01000b 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    transition: opacity 0.5s ease;
+  }
+
+  .start-btn {
+    background: linear-gradient(135deg, #ff4081, #b388ff);
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 800;
+    padding: 18px 36px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 0 30px rgba(255, 64, 129, 0.8);
+    letter-spacing: 1px;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tooltip { 
+    position: absolute; 
+    background: rgba(18, 5, 38, 0.94); 
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    color: #ffffff; 
+    padding: 16px 26px; 
+    border-radius: 24px; 
+    pointer-events: none; 
+    font-weight: 800; 
+    display: none; 
+    z-index: 1000; 
+    font-size: 15.5px; 
+    text-align: center;
+    box-shadow: 0 15px 40px rgba(255, 0, 128, 0.6), 0 0 30px rgba(0, 229, 255, 0.65);
+    border: 1.8px solid rgba(255, 190, 245, 0.8);
+    transform: translate(-50%, -125%);
+    letter-spacing: 0.6px;
+  }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <button class="start-btn" id="startBtn">✨ Toca aquí para Entrar con Música ✨</button>
+</div>
+
+<div id="container"></div>
+<div class="tooltip" id="tooltip"></div>
+
+<!-- MÚSICA CON RESPALDO LOCAL Y REMOTO -->
+<audio id="bgMusic" loop preload="auto" crossorigin="anonymous">
+  <source src="cancion.mp3" type="audio/mpeg">
+  <source src="cancion.mp3" type="audio/mp4">
+</audio>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+<script>
+const music = document.getElementById("bgMusic");
+const startScreen = document.getElementById("startScreen");
+const startBtn = document.getElementById("startBtn");
+
+function startApp() {
+  if (music) {
+    music.play().then(() => {
+      console.log("Audio reproduciéndose correctamente");
+    }).catch(err => {
+      console.log("Error al reproducir audio:", err);
+    });
+  }
+  
+  startScreen.style.opacity = "0";
+  setTimeout(() => {
+    startScreen.style.display = "none";
+  }, 500);
+}
+
+startBtn.addEventListener("click", startApp);
+startBtn.addEventListener("touchstart", startApp, { passive: true });
+
+// --- ESCENA THREE.JS ---
+const container = document.getElementById("container");
+const tooltip = document.getElementById("tooltip");
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 4000);
+camera.position.z = 850;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+container.appendChild(renderer.domElement);
+
+// ILUMINACIÓN ESPACIAL 3D
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+scene.add(ambientLight);
+
+const sunPointLight = new THREE.PointLight(0xffe066, 2.8, 1500);
+scene.add(sunPointLight);
+
+// FONDO DE ESTRELLAS
+const starCount = 4500;
+const starGeo = new THREE.BufferGeometry();
+const starPos = new Float32Array(starCount * 3);
+for(let i = 0; i < starCount * 3; i++) {
+  starPos[i] = (Math.random() - 0.5) * 3800;
+}
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 2.2, transparent: true, opacity: 0.95 });
+scene.add(new THREE.Points(starGeo, starMat));
+
+function createNebulaTexture(c1, c2) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256; canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  const grad = ctx.createRadialGradient(128, 128, 10, 128, 128, 120);
+  grad.addColorStop(0, c1);
+  grad.addColorStop(0.5, c2);
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 256, 256);
+  return new THREE.CanvasTexture(canvas);
+}
+
+const nebulaColors = [
+  ['rgba(255, 0, 170, 0.38)', 'rgba(90, 0, 150, 0.18)'],
+  ['rgba(0, 230, 255, 0.32)', 'rgba(0, 60, 140, 0.15)'],
+  ['rgba(255, 215, 0, 0.30)', 'rgba(150, 60, 0, 0.15)']
+];
+
+nebulaColors.forEach(cols => {
+  const nebMat = new THREE.SpriteMaterial({ map: createNebulaTexture(cols[0], cols[1]), transparent: true, blending: THREE.AdditiveBlending });
+  for(let i = 0; i < 6; i++) {
+    const neb = new THREE.Sprite(nebMat);
+    neb.position.set((Math.random() - 0.5) * 2200, (Math.random() - 0.5) * 1800, -1000);
+    neb.scale.set(1400, 1400, 1);
+    scene.add(neb);
+  }
+});
+
+// POLVO ESTELAR
+const dustCount = 1000;
+const dustGeo = new THREE.BufferGeometry();
+const dustPos = new Float32Array(dustCount * 3);
+for(let i = 0; i < dustCount * 3; i++) {
+  dustPos[i] = (Math.random() - 0.5) * 1600;
+}
+dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+const dustMat = new THREE.PointsMaterial({ color: 0xFFB74D, size: 3.5, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending });
+const dustMesh = new THREE.Points(dustGeo, dustMat);
+scene.add(dustMesh);
+
+// SOL CENTRAL
+const sunGroup = new THREE.Group();
+const sunMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(75, 32, 32),
+  new THREE.MeshBasicMaterial({ color: 0xfffcd0 })
+);
+sunGroup.add(sunMesh);
+
+function createGlowTexture(c1, c2) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 128; canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  const grad = ctx.createRadialGradient(64, 64, 8, 64, 64, 60);
+  grad.addColorStop(0, c1);
+  grad.addColorStop(0.5, c2);
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(canvas);
+}
+
+const innerGlow = new THREE.Sprite(new THREE.SpriteMaterial({ 
+  map: createGlowTexture('rgba(255, 255, 250, 1)', 'rgba(255, 210, 0, 0.95)'), 
+  transparent: true, blending: THREE.AdditiveBlending 
+}));
+innerGlow.scale.set(300, 300, 1);
+sunGroup.add(innerGlow);
+
+const outerGlow = new THREE.Sprite(new THREE.SpriteMaterial({ 
+  map: createGlowTexture('rgba(255, 70, 0, 0.8)', 'rgba(255, 0, 120, 0)'), 
+  transparent: true, blending: THREE.AdditiveBlending 
+}));
+outerGlow.scale.set(500, 500, 1);
+sunGroup.add(outerGlow);
+
+scene.add(sunGroup);
+
+// PLANETAS
+const planetsGroup = new THREE.Group();
+const planetData = [
+  { r: 240, speed: 0.012, size: 15, color: 0x00E5FF },
+  { r: 340, speed: 0.008, size: 19, color: 0xFF4081 },
+  { r: 440, speed: 0.005, size: 24, color: 0xB388FF },
+  { r: 540, speed: 0.003, size: 17, color: 0x69F0AE }
+];
+
+const planets = [];
+planetData.forEach((d) => {
+  const pMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(d.size, 32, 32),
+    new THREE.MeshPhongMaterial({ color: d.color, emissive: d.color, emissiveIntensity: 0.3, shininess: 50 })
+  );
+  planetsGroup.add(pMesh);
+  planets.push({ mesh: pMesh, r: d.r, speed: d.speed, angle: Math.random() * Math.PI * 2 });
+});
+scene.add(planetsGroup);
+
+// CORAZONES FLOTANTES
+const heartsGroup = new THREE.Group();
+const heartCanvas = document.createElement("canvas");
+heartCanvas.width = 32; heartCanvas.height = 32;
+const hCtx = heartCanvas.getContext("2d");
+hCtx.font = "24px Arial";
+hCtx.fillText("💖", 2, 26);
+const heartTex = new THREE.CanvasTexture(heartCanvas);
+const heartMat = new THREE.SpriteMaterial({ map: heartTex, transparent: true });
+
+for(let i = 0; i < 100; i++) {
+  const h = new THREE.Sprite(heartMat);
+  h.position.set((Math.random() - 0.5) * 1300, Math.random() * 850 - 425, (Math.random() - 0.5) * 1300);
+  h.scale.set(22, 22, 1);
+  heartsGroup.add(h);
+}
+scene.add(heartsGroup);
+
+// PALABRAS
+const words = [
+  "🧸 Mi niño", "💖 Mi chiquito", "🥺 Mi patojo", "🌟 Mi niño lindo", "🧸 Mi ternura", 
+  "✨ Mi cielito", "🌟 Mi estrella", "💘 Mi felicidad", "🌙 Mi mundo entero", "✨ Siempre tú", 
+  "💞 Mi amorcito", "🌸 Mi alegría", "🌈 Mi luz", "☀️ Mi solcito", "🕊️ Mi paz", 
+  "💌 Mi corazón", "🌺 Mi vida", "💫 Mi magia", "🌻 Mi niño hermoso", "🌼 Mi tesoro"
+];
+
+const generalMessages = [
+  "💖 Eres el niño más lindo y cariñoso de todos 💖",
+  "🌟 Eres mi persona favorita en todo el universo 🌟",
+  "🥰 Te quiero muchisisísimo con todo mi corazón 🥰",
+  "💞 Siempre me sacas la sonrisa más bonita 💞"
+];
+
+const colors = ["#FF6B95", "#FF8E53", "#FFD700", "#69F0AE", "#40C4FF", "#B388FF", "#FF4081"];
+
+function getWordSprite(text) {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.font = "Bold 38px Arial, sans-serif";
+  const w = Math.ceil(ctx.measureText(text).width + 28);
+  canvas.width = w; canvas.height = 58;
+
+  ctx.font = "Bold 38px Arial, sans-serif";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+  ctx.shadowColor = "rgba(0,0,0,0.95)";
+  ctx.shadowBlur = 8;
+  ctx.fillText(text, 14, 29);
+
+  return {
+    mat: new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true }),
+    w: w / 2.1, h: 58 / 2.1
+  };
+}
+
+const group = new THREE.Group();
+const totalWords = 300;
+const radius = 520;
+const sprites = [];
+
+for(let i = 0; i < totalWords; i++) {
+  const text = words[i % words.length];
+  const { mat, w, h } = getWordSprite(text);
+  
+  const sprite = new THREE.Sprite(mat);
+  const theta = Math.random() * 2 * Math.PI;
+  const phi = Math.acos(2 * Math.random() - 1);
+  
+  sprite.position.x = radius * Math.sin(phi) * Math.cos(theta);
+  sprite.position.y = radius * Math.sin(phi) * Math.sin(theta);
+  sprite.position.z = radius * Math.cos(phi);
+  
+  sprite.scale.set(w, h, 1);
+  sprite.userData = { message: generalMessages[i % generalMessages.length], baseW: w, baseH: h };
+  
+  group.add(sprite);
+  sprites.push(sprite);
+}
+scene.add(group);
+
+// ANIMACIÓN
+let targetRotX = 0, targetRotY = 0;
+let currentRotX = 0, currentRotY = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+  
+  currentRotX += (targetRotX - currentRotX) * 0.04;
+  currentRotY += (targetRotY - currentRotY) * 0.04;
+  
+  group.rotation.x = currentRotX;
+  group.rotation.y = currentRotY + Date.now() * 0.00028;
+  
+  dustMesh.rotation.y += 0.0007;
+
+  planets.forEach(p => {
+    p.angle += p.speed;
+    p.mesh.position.x = p.r * Math.cos(p.angle);
+    p.mesh.position.z = p.r * Math.sin(p.angle);
+  });
+
+  heartsGroup.children.forEach(h => {
+    h.position.y -= 0.65;
+    if(h.position.y < -425) h.position.y = 425;
+  });
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// MANEJO DE TOQUES Y MENSAJES
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let activeSprite = null;
+let tooltipTimeout = null;
+
+function hideTooltip() {
+  if (activeSprite) {
+    activeSprite.scale.set(activeSprite.userData.baseW, activeSprite.userData.baseH, 1);
+    activeSprite = null;
+  }
+  tooltip.style.display = 'none';
+}
+
+function checkTouch(clientX, clientY) {
+  mouse.x = (clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+  
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(sprites);
+  
+  if(intersects.length > 0) {
+    const hit = intersects[0].object;
+    if(activeSprite) activeSprite.scale.set(activeSprite.userData.baseW, activeSprite.userData.baseH, 1);
+    
+    activeSprite = hit;
+    activeSprite.scale.set(activeSprite.userData.baseW * 1.5, activeSprite.userData.baseH * 1.5, 1);
+    
+    tooltip.innerText = hit.userData.message;
+    tooltip.style.display = 'block';
+    tooltip.style.left = clientX + 'px';
+    tooltip.style.top = (clientY - 12) + 'px';
+
+    clearTimeout(tooltipTimeout);
+    tooltipTimeout = setTimeout(hideTooltip, 3500);
+  } else {
+    hideTooltip();
+  }
+}
+
+let isDragging = false, prevX = 0, prevY = 0;
+
+window.addEventListener("pointerdown", e => {
+  isDragging = true;
+  prevX = e.clientX; prevY = e.clientY;
+  checkTouch(e.clientX, e.clientY);
+});
+
+window.addEventListener("pointermove", e => {
+  if(isDragging) {
+    targetRotY += (e.clientX - prevX) * 0.005;
+    targetRotX += (e.clientY - prevY) * 0.005;
+    prevX = e.clientX; prevY = e.clientY;
+  }
+});
+
+window.addEventListener("pointerup", () => isDragging = false);
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
